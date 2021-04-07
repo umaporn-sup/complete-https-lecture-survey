@@ -75,6 +75,20 @@
             </button>
           </form>
         </div>
+        <base-card>
+          <ul v-for="survey in surveyResults" :key="survey.id">
+            <li>
+              <span>{{ survey.name }}</span> rating the learning experience
+              <span> {{ survey.rating }}</span>
+              <button @click="showData(survey)" class="bg-green-500 m-1">
+                <img src="./assets/edit.svg" alt="" />
+              </button>
+              <button @click="deleteSurvey(survey.id)" class="bg-red-500 m-1">
+                <img src="./assets/delete.svg" alt="" />
+              </button>
+            </li>
+          </ul>
+        </base-card>
       </div>
     </div>
   </div>
@@ -90,10 +104,14 @@ export default {
   },
   data() {
     return {
+      isEdit: false,
+      editId: '',
+      url: 'http://localhost:5000/surveyResults',
       enteredName: '',
       rating: null,
       invalidNameInput: false,
-      invalidRatingInput: false
+      invalidRatingInput: false,
+      surveyResults: []
     }
   },
   methods: {
@@ -105,12 +123,115 @@ export default {
       console.log(`rating value: ${this.rating}`)
       console.log(`invalid name: ${this.invalidNameInput}`)
       console.log(`invalid rating: ${this.invalidRatingInput}`)
+
+      if (this.enteredName !== '' && this.rating !== null) {
+        // this.surveyResults.push({
+        //   name: this.enteredName,
+        //   rating: this.rating
+        // })
+
+        if (this.isEdit) {
+          this.editSurvey({
+            id: this.editId,
+            name: this.enteredName,
+            rating: this.rating
+          })
+        } else {
+          this.addNewSurvey({
+            name: this.enteredName,
+            rating: this.rating
+          })
+        }
+      }
+      this.enteredName = ''
+      this.rating = null
+      // console.log(
+      //   `name: ${this.surveyResults[0].name} rating ${this.surveyResults[0].rating}`
+      // )
     },
 
     validateName() {
       this.invalidNameInput = this.enteredName === '' ? true : false
       console.log(`name: ${this.invalidNameInput}`)
+    },
+
+    showData(oldSurvey) {
+      this.isEdit = true
+      this.editId = oldSurvey.id
+      this.enteredName = oldSurvey.name
+      this.rating = oldSurvey.rating
+    },
+    async editSurvey(editingSurvey) {
+      try {
+        const res = await fetch(`${this.url}/${editingSurvey.id}`, {
+          method: 'PUT',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: editingSurvey.name,
+            rating: editingSurvey.rating
+          })
+        })
+        const data = await res.json()
+        this.surveyResults = this.surveyResults.map((survey) =>
+          survey.id === editingSurvey.id
+            ? { ...survey, name: data.name, rating: data.rating }
+            : survey
+        )
+
+        this.isEdit = false
+        this.editId = ''
+        this.enteredName = ''
+        this.rating = null
+      } catch (error) {
+        console.log(`Could not edit! ${error}`)
+      }
+    },
+    async getSurveyResult() {
+      try {
+        const res = await fetch(this.url)
+        const data = await res.json()
+        return data
+      } catch (error) {
+        console.log(`Could not get! ${error}`)
+      }
+    },
+    async deleteSurvey(deleteId) {
+      try {
+        await fetch(`${this.url}/${deleteId}`, {
+          method: 'DELETE'
+        })
+        //filter - higher order function
+        this.surveyResults = this.surveyResults.filter(
+          (survey) => survey.id !== deleteId
+        )
+      } catch (error) {
+        console.log(`Could not delete! ${error}`)
+      }
+    },
+    async addNewSurvey(newSurvey) {
+      try {
+        const res = await fetch(this.url, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: newSurvey.name,
+            rating: newSurvey.rating
+          })
+        })
+        const data = await res.json()
+        this.surveyResults = [...this.surveyResults, data]
+      } catch (error) {
+        console.log(`Could not save! ${error}`)
+      }
     }
+  },
+
+  async created() {
+    this.surveyResults = await this.getSurveyResult()
   }
 }
 </script>

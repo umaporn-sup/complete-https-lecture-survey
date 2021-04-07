@@ -1,0 +1,14 @@
+{
+  "surveyResults": [
+    {
+      "name": "Somchai2",
+      "rating": "great",
+      "id": 1
+    },
+    {
+      "name": "BB",
+      "rating": "great",
+      "id": 4
+    }
+  ]
+}
